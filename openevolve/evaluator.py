@@ -341,7 +341,8 @@ class Evaluator:
 
                 async def run_stage1():
                     loop = asyncio.get_event_loop()
-                    return await loop.run_in_executor(None, module.evaluate_stage1, program_path)
+                    return await loop.run_in_executor(None, module.evaluate_stage1, program_path,
+                                                      self.initial_program_path)
 
                 stage1_result = await asyncio.wait_for(run_stage1(), timeout=self.config.timeout)
                 stage1_eval_result = self._process_evaluation_result(stage1_result)
@@ -382,6 +383,7 @@ class Evaluator:
                 async def run_stage2():
                     loop = asyncio.get_event_loop()
                     return await loop.run_in_executor(None, module.evaluate_stage2, program_path)
+                                                      self.initial_program_path)
 
                 stage2_result = await asyncio.wait_for(run_stage2(), timeout=self.config.timeout)
                 stage2_eval_result = self._process_evaluation_result(stage2_result)
