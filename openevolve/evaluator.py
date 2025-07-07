@@ -38,14 +38,16 @@ class Evaluator:
     """
 
     def __init__(
-        self,
-        config: EvaluatorConfig,
-        evaluation_file: str,
-        llm_ensemble: Optional[LLMEnsemble] = None,
-        prompt_sampler: Optional[PromptSampler] = None,
-        database: Optional[ProgramDatabase] = None,
+            self,
+            config: EvaluatorConfig,
+            initial_program_path: str,
+            evaluation_file: str,
+            llm_ensemble: Optional[LLMEnsemble] = None,
+            prompt_sampler: Optional[PromptSampler] = None,
+            database: Optional[ProgramDatabase] = None,
     ):
         self.config = config
+        self.initial_program_path = initial_program_path
         self.evaluation_file = evaluation_file
         self.llm_ensemble = llm_ensemble
         self.prompt_sampler = prompt_sampler
@@ -94,9 +96,9 @@ class Evaluator:
             raise
 
     async def evaluate_program(
-        self,
-        program_code: str,
-        program_id: str = "",
+            self,
+            program_code: str,
+            program_id: str = "",
     ) -> Dict[str, float]:
         """
         Evaluate a program and return scores
@@ -160,12 +162,12 @@ class Evaluator:
 
                 # Store artifacts if enabled and present
                 if (
-                    artifacts_enabled
-                    and (
+                        artifacts_enabled
+                        and (
                         eval_result.has_artifacts()
                         or (llm_eval_result and llm_eval_result.has_artifacts())
-                    )
-                    and program_id
+                )
+                        and program_id
                 ):
                     if program_id not in self._pending_artifacts:
                         self._pending_artifacts[program_id] = {}
@@ -291,7 +293,7 @@ class Evaluator:
         # Create a coroutine that runs the evaluation function in an executor
         async def run_evaluation():
             loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None, self.evaluate_function, program_path)
+            return await loop.run_in_executor(None, self.evaluate_function, program_path, self.initial_program_path)
 
         # Run the evaluation with timeout - let exceptions bubble up for retry handling
         result = await asyncio.wait_for(run_evaluation(), timeout=self.config.timeout)
@@ -304,7 +306,7 @@ class Evaluator:
         return result
 
     async def _cascade_evaluate(
-        self, program_path: str
+            self, program_path: str
     ) -> Union[Dict[str, float], EvaluationResult]:
         """
         Run cascade evaluation with increasingly challenging test cases
@@ -366,7 +368,7 @@ class Evaluator:
 
             # Check threshold
             if not self._passes_threshold(
-                stage1_eval_result.metrics, self.config.cascade_thresholds[0]
+                    stage1_eval_result.metrics, self.config.cascade_thresholds[0]
             ):
                 return stage1_eval_result
 
@@ -428,7 +430,7 @@ class Evaluator:
 
             # Check threshold for stage 3
             if len(self.config.cascade_thresholds) < 2 or not self._passes_threshold(
-                merged_result.metrics, self.config.cascade_thresholds[1]
+                    merged_result.metrics, self.config.cascade_thresholds[1]
             ):
                 return merged_result
 
@@ -614,8 +616,8 @@ class Evaluator:
         return avg_score >= threshold
 
     async def evaluate_multiple(
-        self,
-        programs: List[Tuple[str, str]],
+            self,
+            programs: List[Tuple[str, str]],
     ) -> List[Dict[str, float]]:
         """
         Evaluate multiple programs in parallel

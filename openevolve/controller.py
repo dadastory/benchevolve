@@ -76,12 +76,12 @@ class OpenEvolve:
     """
 
     def __init__(
-        self,
-        initial_program_path: str,
-        evaluation_file: str,
-        config_path: Optional[str] = None,
-        config: Optional[Config] = None,
-        output_dir: Optional[str] = None,
+            self,
+            initial_program_path: str,
+            evaluation_file: str,
+            config_path: Optional[str] = None,
+            config: Optional[Config] = None,
+            output_dir: Optional[str] = None,
     ):
         # Load configuration
         if config is not None:
@@ -109,11 +109,11 @@ class OpenEvolve:
             # Set global random seeds
             random.seed(self.config.random_seed)
             np.random.seed(self.config.random_seed)
-            
+
             # Create hash-based seeds for different components
             base_seed = str(self.config.random_seed).encode('utf-8')
-            llm_seed = int(hashlib.md5(base_seed + b'llm').hexdigest()[:8], 16) % (2**31)
-            
+            llm_seed = int(hashlib.md5(base_seed + b'llm').hexdigest()[:8], 16) % (2 ** 31)
+
             # Propagate seed to LLM configurations
             self.config.llm.random_seed = llm_seed
             for model_cfg in self.config.llm.models:
@@ -122,7 +122,7 @@ class OpenEvolve:
             for model_cfg in self.config.llm.evaluator_models:
                 if not hasattr(model_cfg, 'random_seed') or model_cfg.random_seed is None:
                     model_cfg.random_seed = llm_seed
-            
+
             logger.info(f"Set random seed to {self.config.random_seed} for reproducibility")
             logger.debug(f"Generated LLM seed: {llm_seed}")
 
@@ -157,6 +157,7 @@ class OpenEvolve:
 
         self.evaluator = Evaluator(
             self.config.evaluator,
+            self.initial_program_path,
             evaluation_file,
             self.llm_evaluator_ensemble,
             self.evaluator_prompt_sampler,
@@ -195,9 +196,9 @@ class OpenEvolve:
             return f.read()
 
     async def run(
-        self,
-        iterations: Optional[int] = None,
-        target_score: Optional[float] = None,
+            self,
+            iterations: Optional[int] = None,
+            target_score: Optional[float] = None,
     ) -> Program:
         """
         Run the evolution process
@@ -217,11 +218,11 @@ class OpenEvolve:
         # Only add initial program if starting fresh (not resuming from checkpoint)
         # Check if we're resuming AND no program matches initial code to avoid pollution
         should_add_initial = (
-            start_iteration == 0
-            and len(self.database.programs) == 0
-            and not any(
-                p.code == self.initial_program_code for p in self.database.programs.values()
-            )
+                start_iteration == 0
+                and len(self.database.programs) == 0
+                and not any(
+            p.code == self.initial_program_code for p in self.database.programs.values()
+        )
         )
 
         if should_add_initial:
@@ -304,13 +305,13 @@ class OpenEvolve:
                     system_message=prompt["system"],
                     messages=[{"role": "user", "content": prompt["user"]}],
                 )
-
+                logging.debug(f"prompt: {prompt['user']} , response: {llm_response}")
                 # Parse the response
                 if self.config.diff_based_evolution:
                     diff_blocks = extract_diffs(llm_response)
 
                     if not diff_blocks:
-                        logger.warning(f"Iteration {i+1}: No valid diffs found in response")
+                        logger.warning(f"Iteration {i + 1}: No valid diffs found in response")
                         continue
 
                     # Apply the diffs
@@ -321,7 +322,7 @@ class OpenEvolve:
                     new_code = parse_full_rewrite(llm_response, self.language)
 
                     if not new_code:
-                        logger.warning(f"Iteration {i+1}: No valid code found in response")
+                        logger.warning(f"Iteration {i + 1}: No valid code found in response")
                         continue
 
                     child_code = new_code
@@ -330,7 +331,7 @@ class OpenEvolve:
                 # Check code length
                 if len(child_code) > self.config.max_code_length:
                     logger.warning(
-                        f"Iteration {i+1}: Generated code exceeds maximum length "
+                        f"Iteration {i + 1}: Generated code exceeds maximum length "
                         f"({len(child_code)} > {self.config.max_code_length})"
                     )
                     continue
@@ -388,7 +389,7 @@ class OpenEvolve:
 
                 # Check if migration should occur
                 if self.database.should_migrate():
-                    logger.info(f"Performing migration at iteration {i+1}")
+                    logger.info(f"Performing migration at iteration {i + 1}")
                     self.database.migrate_programs()
                     self.database.log_island_status()
 
@@ -398,14 +399,14 @@ class OpenEvolve:
 
                 # Specifically check if this is the new best program
                 if self.database.best_program_id == child_program.id:
-                    logger.info(f"🌟 New best solution found at iteration {i+1}: {child_program.id}")
+                    logger.info(f"🌟 New best solution found at iteration {i + 1}: {child_program.id}")
                     logger.info(f"Metrics: {format_metrics_safe(child_program.metrics)}")
 
                 # Save checkpoint
                 if (i + 1) % self.config.checkpoint_interval == 0:
                     self._save_checkpoint(i + 1)
                     # Also log island status at checkpoints
-                    logger.info(f"Island status at checkpoint {i+1}:")
+                    logger.info(f"Island status at checkpoint {i + 1}:")
                     self.database.log_island_status()
 
                 # Check if target score reached
@@ -420,12 +421,12 @@ class OpenEvolve:
                         avg_score = sum(numeric_metrics) / len(numeric_metrics)
                         if avg_score >= target_score:
                             logger.info(
-                                f"Target score {target_score} reached after {i+1} iterations"
+                                f"Target score {target_score} reached after {i + 1} iterations"
                             )
                             break
 
             except Exception as e:
-                logger.exception(f"Error in iteration {i+1}: {str(e)}")
+                logger.exception(f"Error in iteration {i + 1}: {str(e)}")
                 continue
 
         # Get the best program using our tracking mechanism
@@ -443,14 +444,14 @@ class OpenEvolve:
         if "combined_score" in best_program.metrics:
             best_by_combined = self.database.get_best_program(metric="combined_score")
             if (
-                best_by_combined
-                and best_by_combined.id != best_program.id
-                and "combined_score" in best_by_combined.metrics
+                    best_by_combined
+                    and best_by_combined.id != best_program.id
+                    and "combined_score" in best_by_combined.metrics
             ):
                 # If the combined_score of this program is significantly better, use it instead
                 if (
-                    best_by_combined.metrics["combined_score"]
-                    > best_program.metrics["combined_score"] + 0.02
+                        best_by_combined.metrics["combined_score"]
+                        > best_program.metrics["combined_score"] + 0.02
                 ):
                     logger.warning(
                         f"Found program with better combined_score: {best_by_combined.id}"
@@ -476,11 +477,11 @@ class OpenEvolve:
             return None
 
     def _log_iteration(
-        self,
-        iteration: int,
-        parent: Program,
-        child: Program,
-        elapsed_time: float,
+            self,
+            iteration: int,
+            parent: Program,
+            child: Program,
+            elapsed_time: float,
     ) -> None:
         """
         Log iteration progress
@@ -495,7 +496,7 @@ class OpenEvolve:
         improvement_str = format_improvement_safe(parent.metrics, child.metrics)
 
         logger.info(
-            f"Iteration {iteration+1}: Child {child.id} from parent {parent.id} "
+            f"Iteration {iteration + 1}: Child {child.id} from parent {parent.id} "
             f"in {elapsed_time:.2f}s. Metrics: "
             f"{format_metrics_safe(child.metrics)} "
             f"(Δ: {improvement_str})"
