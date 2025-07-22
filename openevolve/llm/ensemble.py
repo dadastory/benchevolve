@@ -7,6 +7,7 @@ import logging
 import random
 from typing import Dict, List, Optional, Tuple
 
+from agent.llm_agent import AgentLLM
 from openevolve.llm.base import LLMInterface
 from openevolve.llm.openai import OpenAILLM
 from openevolve.config import LLMModelConfig
@@ -21,7 +22,7 @@ class LLMEnsemble:
         self.models_cfg = models_cfg
 
         # Initialize models from the configuration
-        self.models = [OpenAILLM(model_cfg) for model_cfg in models_cfg]
+        self.models = [AgentLLM(model_cfg) for model_cfg in models_cfg]
 
         # Extract and normalize model weights
         self.weights = [model.weight for model in models_cfg]
