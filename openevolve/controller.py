@@ -79,6 +79,7 @@ class OpenEvolve:
             self,
             initial_program_path: str,
             evaluation_file: str,
+            system_prompt:str,
             config_path: Optional[str] = None,
             config: Optional[Config] = None,
             output_dir: Optional[str] = None,
@@ -90,6 +91,8 @@ class OpenEvolve:
         else:
             # Load from file or use defaults
             self.config = load_config(config_path)
+        if system_prompt is not None:
+            self.config.prompt.system_message = system_prompt
 
         # Set up output directory
         self.output_dir = output_dir or os.path.join(
