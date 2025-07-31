@@ -2,16 +2,12 @@
 Main controller for OpenEvolve
 """
 
-import asyncio
 import logging
 import os
-import re
 import time
 import uuid
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
-import traceback
-
+from typing import Any, Dict, Optional
+from rich.logging import RichHandler
 from openevolve.config import Config, load_config
 from openevolve.database import Program, ProgramDatabase
 from openevolve.evaluator import Evaluator
@@ -22,7 +18,6 @@ from openevolve.utils.code_utils import (
     extract_code_language,
     extract_diffs,
     format_diff_summary,
-    parse_evolve_blocks,
     parse_full_rewrite,
 )
 from openevolve.utils.format_utils import (
@@ -79,7 +74,7 @@ class OpenEvolve:
             self,
             initial_program_path: str,
             evaluation_file: str,
-            system_prompt:str,
+            system_prompt: str,
             config_path: Optional[str] = None,
             config: Optional[Config] = None,
             output_dir: Optional[str] = None,
@@ -186,11 +181,16 @@ class OpenEvolve:
         )
         root_logger.addHandler(file_handler)
 
-        # Add console handler
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-        root_logger.addHandler(console_handler)
-
+        # 3. 添加 Rich 控制台 handler
+        rich_handler = RichHandler(
+            rich_tracebacks=True,  # 美化 Traceback
+            markup=True,  # 支持在日志里使用 [bold red]之类的 markup
+            show_time=True,  # 在每行前面显示时间
+            show_level=True,  # 显示 LEVEL 名称
+            show_path=False  # 不显示文件路径；根据需要可设为 True
+        )
+        rich_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        root_logger.addHandler(rich_handler)
         logger.info(f"Logging to {log_file}")
 
     def _load_initial_program(self) -> str:
