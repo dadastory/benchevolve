@@ -5,11 +5,11 @@ Model ensemble for LLMs
 import asyncio
 import logging
 import random
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
+from openevolve.config import LLMModelConfig
 from openevolve.llm.base import LLMInterface
 from openevolve.llm.openai import OpenAILLM
-from openevolve.config import LLMModelConfig
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +27,14 @@ class LLMEnsemble:
         self.weights = [model.weight for model in models_cfg]
         total = sum(self.weights)
         self.weights = [w / total for w in self.weights]
-        
+
         # Set up random state for deterministic model selection
         self.random_state = random.Random()
         # Initialize with seed from first model's config if available
         if models_cfg and hasattr(models_cfg[0], 'random_seed') and models_cfg[0].random_seed is not None:
             self.random_state.seed(models_cfg[0].random_seed)
-            logger.debug(f"LLMEnsemble: Set random seed to {models_cfg[0].random_seed} for deterministic model selection")
+            logger.debug(
+                f"LLMEnsemble: Set random seed to {models_cfg[0].random_seed} for deterministic model selection")
 
         logger.info(
             f"Initialized LLM ensemble with models: "
@@ -49,7 +50,7 @@ class LLMEnsemble:
         return await model.generate(prompt, **kwargs)
 
     async def generate_with_context(
-        self, system_message: str, messages: List[Dict[str, str]], **kwargs
+            self, system_message: str, messages: List[Dict[str, str]], **kwargs
     ) -> str:
         """Generate text using a system message and conversational context"""
         model = self._sample_model()
@@ -73,7 +74,7 @@ class LLMEnsemble:
         return await asyncio.gather(*tasks)
 
     async def generate_all_with_context(
-        self, system_message: str, messages: List[Dict[str, str]], **kwargs
+            self, system_message: str, messages: List[Dict[str, str]], **kwargs
     ) -> str:
         """Generate text using a all available models and average their returned metrics"""
         responses = []

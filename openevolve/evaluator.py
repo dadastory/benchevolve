@@ -7,23 +7,18 @@ import importlib.util
 import json
 import logging
 import os
-import subprocess
 import sys
 import tempfile
 import time
 import traceback
-import uuid
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-import traceback
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from openevolve.config import EvaluatorConfig
 from openevolve.database import ProgramDatabase
 from openevolve.evaluation_result import EvaluationResult
-from openevolve.database import ProgramDatabase
 from openevolve.llm.ensemble import LLMEnsemble
-from openevolve.utils.async_utils import TaskPool, run_in_executor
 from openevolve.prompt.sampler import PromptSampler
+from openevolve.utils.async_utils import TaskPool
 from openevolve.utils.format_utils import format_metrics_safe
 
 logger = logging.getLogger(__name__)
@@ -382,7 +377,8 @@ class Evaluator:
 
                 async def run_stage2():
                     loop = asyncio.get_event_loop()
-                    return await loop.run_in_executor(None, module.evaluate_stage2, program_path)
+                    return await loop.run_in_executor(None, module.evaluate_stage2, program_path,
+                                                      self.initial_program_path)
 
                 stage2_result = await asyncio.wait_for(run_stage2(), timeout=self.config.timeout)
                 stage2_eval_result = self._process_evaluation_result(stage2_result)
