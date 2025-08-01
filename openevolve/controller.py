@@ -308,7 +308,7 @@ class OpenEvolve:
                     system_message=prompt["system"],
                     messages=[{"role": "user", "content": prompt["user"]}],
                 )
-                logging.debug(f"prompt: {prompt['user']} , response: {llm_response}")
+                logging.info(f"prompt: {prompt['user']} , response: {llm_response}")
                 # Parse the response
                 if self.config.diff_based_evolution:
                     diff_blocks = extract_diffs(llm_response)
