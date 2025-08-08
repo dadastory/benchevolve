@@ -7,7 +7,9 @@ import os
 import time
 import uuid
 from typing import Any, Dict, Optional
+
 from rich.logging import RichHandler
+
 from openevolve.config import Config, load_config
 from openevolve.database import Program, ProgramDatabase
 from openevolve.evaluator import Evaluator
@@ -308,7 +310,7 @@ class OpenEvolve:
                     system_message=prompt["system"],
                     messages=[{"role": "user", "content": prompt["user"]}],
                 )
-                logging.info(f"prompt: {prompt['user']} , response: {llm_response}")
+                logging.info(f"prompt: {prompt['user']}")
                 # Parse the response
                 if self.config.diff_based_evolution:
                     diff_blocks = extract_diffs(llm_response)
