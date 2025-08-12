@@ -8,7 +8,7 @@ import logging
 import time
 from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 T = TypeVar("T")
 

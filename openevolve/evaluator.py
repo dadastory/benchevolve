@@ -21,7 +21,7 @@ from openevolve.prompt.sampler import PromptSampler
 from openevolve.utils.async_utils import TaskPool
 from openevolve.utils.format_utils import format_metrics_safe
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class Evaluator:

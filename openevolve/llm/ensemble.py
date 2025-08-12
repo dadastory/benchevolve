@@ -11,7 +11,7 @@ from openevolve.config import LLMModelConfig
 from openevolve.llm.base import LLMInterface
 from openevolve.llm.openai import OpenAILLM
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class LLMEnsemble:

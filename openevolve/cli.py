@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 from openevolve import OpenEvolve
 from openevolve.config import Config, load_config
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 def parse_args() -> argparse.Namespace:

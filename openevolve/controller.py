@@ -7,9 +7,7 @@ import os
 import time
 import uuid
 from typing import Any, Dict, Optional
-
-from rich.logging import RichHandler
-
+from loguru import logger
 from openevolve.config import Config, load_config
 from openevolve.database import Program, ProgramDatabase
 from openevolve.evaluator import Evaluator
@@ -26,9 +24,6 @@ from openevolve.utils.format_utils import (
     format_metrics_safe,
     format_improvement_safe,
 )
-
-logger = logging.getLogger(__name__)
-
 
 def _format_metrics(metrics: Dict[str, Any]) -> str:
     """Safely format metrics, handling both numeric and string values"""
@@ -167,32 +162,34 @@ class OpenEvolve:
         logger.info(f"Initialized OpenEvolve with {initial_program_path} " f"and {evaluation_file}")
 
     def _setup_logging(self) -> None:
-        """Set up logging"""
+        """Set up logging with loguru"""
         log_dir = self.config.log_dir or os.path.join(self.output_dir, "logs")
         os.makedirs(log_dir, exist_ok=True)
 
-        # Set up root logger
-        root_logger = logging.getLogger()
-        root_logger.setLevel(getattr(logging, self.config.log_level))
-
-        # Add file handler
         log_file = os.path.join(log_dir, f"openevolve_{time.strftime('%Y%m%d_%H%M%S')}.log")
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-        )
-        root_logger.addHandler(file_handler)
 
-        # 3. 添加 Rich 控制台 handler
-        rich_handler = RichHandler(
-            rich_tracebacks=True,  # 美化 Traceback
-            markup=True,  # 支持在日志里使用 [bold red]之类的 markup
-            show_time=True,  # 在每行前面显示时间
-            show_level=True,  # 显示 LEVEL 名称
-            show_path=False  # 不显示文件路径；根据需要可设为 True
+        # 清空 loguru 默认的 handler（否则会重复输出）
+        logger.remove()
+
+        # 添加文件输出（日志文件）
+        logger.add(
+            log_file,
+            rotation="10 MB",  # 超过 10MB 切割
+            retention="7 days", # 保留 7 天
+            compression="zip",  # 压缩旧日志
+            encoding="utf-8",
+            level=self.config.log_level,  # 直接用你的 config.log_level
+            format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}"
         )
-        rich_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-        root_logger.addHandler(rich_handler)
+
+        # 添加控制台输出（带颜色）
+        logger.add(
+            lambda msg: print(msg, end=""),
+            colorize=True,
+            format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}:{function}:{line}</cyan> - <level>{message}</level>",
+            level=self.config.log_level
+        )
+
         logger.info(f"Logging to {log_file}")
 
     def _load_initial_program(self) -> str:

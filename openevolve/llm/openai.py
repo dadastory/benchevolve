@@ -9,9 +9,7 @@ from typing import Any, Dict, List, Optional
 import openai
 
 from openevolve.llm.base import LLMInterface
-
-logger = logging.getLogger(__name__)
-
+from loguru import logger
 
 class OpenAILLM(LLMInterface):
     """LLM interface using OpenAI-compatible APIs"""
@@ -118,8 +116,9 @@ class OpenAILLM(LLMInterface):
         response = await loop.run_in_executor(
             None, lambda: self.client.chat.completions.create(**params)
         )
+        from loguru import logger
         # Logging of system prompt, user message and response content
-        logger = logging.getLogger(__name__)
+        # logger = logging.getLogger(__name__)
         logger.debug(f"API parameters: {params}")
         logger.debug(f"API response: {response.choices[0].message.content}")
         return response.choices[0].message.content

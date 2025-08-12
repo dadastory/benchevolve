@@ -18,8 +18,8 @@ from openevolve.config import DatabaseConfig
 from openevolve.utils.code_utils import calculate_edit_distance
 from openevolve.utils.metrics_utils import safe_numeric_average
 
-logger = logging.getLogger(__name__)
-
+# logger = logging.getLogger(__name__)
+from loguru import logger
 
 def _safe_sum_metrics(metrics: Dict[str, Any]) -> float:
     """Safely sum only numeric metric values, ignoring strings and other types"""
