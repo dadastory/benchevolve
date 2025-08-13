@@ -7,7 +7,9 @@ import os
 import time
 import uuid
 from typing import Any, Dict, Optional
+
 from loguru import logger
+
 from openevolve.config import Config, load_config
 from openevolve.database import Program, ProgramDatabase
 from openevolve.evaluator import Evaluator
@@ -24,6 +26,7 @@ from openevolve.utils.format_utils import (
     format_metrics_safe,
     format_improvement_safe,
 )
+
 
 def _format_metrics(metrics: Dict[str, Any]) -> str:
     """Safely format metrics, handling both numeric and string values"""
@@ -123,6 +126,7 @@ class OpenEvolve:
 
         # Load initial program
         self.initial_program_path = initial_program_path
+        os.environ['INITIAL_FILE_PATH'] = initial_program_path
         self.initial_program_code = self._load_initial_program()
         self.language = extract_code_language(self.initial_program_code)
 
@@ -137,8 +141,8 @@ class OpenEvolve:
                 self.file_extension = f".{self.file_extension}"
 
         # Initialize components
-        self.llm_ensemble = LLMEnsemble(self.config.llm.models)
-        self.llm_evaluator_ensemble = LLMEnsemble(self.config.llm.evaluator_models)
+        self.llm_ensemble = LLMEnsemble(self.config.llm.models, system_prompt)
+        self.llm_evaluator_ensemble = LLMEnsemble(self.config.llm.evaluator_models, system_prompt)
 
         self.prompt_sampler = PromptSampler(self.config.prompt)
         self.evaluator_prompt_sampler = PromptSampler(self.config.prompt)
@@ -175,7 +179,7 @@ class OpenEvolve:
         logger.add(
             log_file,
             rotation="10 MB",  # 超过 10MB 切割
-            retention="7 days", # 保留 7 天
+            retention="7 days",  # 保留 7 天
             compression="zip",  # 压缩旧日志
             encoding="utf-8",
             level=self.config.log_level,  # 直接用你的 config.log_level
@@ -299,6 +303,7 @@ class OpenEvolve:
                 evolution_round=i,
                 diff_based_evolution=self.config.diff_based_evolution,
                 program_artifacts=parent_artifacts if parent_artifacts else None,
+                template_key='kernelbench_evolve',
             )
 
             # Generate code modification

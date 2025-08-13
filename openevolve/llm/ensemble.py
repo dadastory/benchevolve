@@ -3,25 +3,24 @@ Model ensemble for LLMs
 """
 
 import asyncio
-import logging
 import random
-from typing import Dict, List
+from typing import Dict, List, Any, Coroutine
+
+from loguru import logger
 
 from openevolve.config import LLMModelConfig
 from openevolve.llm.base import LLMInterface
-from openevolve.llm.openai import OpenAILLM
-
-from loguru import logger
+from openevolve.llm.llm_agent import AgentLLM
 
 
 class LLMEnsemble:
     """Ensemble of LLMs"""
 
-    def __init__(self, models_cfg: List[LLMModelConfig]):
+    def __init__(self, models_cfg: List[LLMModelConfig], system_prompt: str):
         self.models_cfg = models_cfg
 
         # Initialize models from the configuration
-        self.models = [OpenAILLM(model_cfg) for model_cfg in models_cfg]
+        self.models = [AgentLLM(model_cfg, system_prompt) for model_cfg in models_cfg]
 
         # Extract and normalize model weights
         self.weights = [model.weight for model in models_cfg]
@@ -75,7 +74,7 @@ class LLMEnsemble:
 
     async def generate_all_with_context(
             self, system_message: str, messages: List[Dict[str, str]], **kwargs
-    ) -> str:
+    ) -> list[Any]:
         """Generate text using a all available models and average their returned metrics"""
         responses = []
         for model in self.models:
