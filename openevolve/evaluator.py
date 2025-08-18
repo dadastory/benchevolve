@@ -40,7 +40,7 @@ class Evaluator:
         llm_ensemble: Optional[LLMEnsemble] = None,
         prompt_sampler: Optional[PromptSampler] = None,
         database: Optional[ProgramDatabase] = None,
-        suffix: Optional[str]=".py",
+        suffix: Optional[str] = ".py",
     ):
         self.config = config
         self.initial_program_path = initial_program_path
