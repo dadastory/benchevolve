@@ -2,28 +2,23 @@
 Main controller for OpenEvolve
 """
 
-import logging
 import os
 import signal
 import time
 import uuid
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from loguru import logger
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
 
 from openevolve.config import Config, load_config
 from openevolve.database import Program, ProgramDatabase
 from openevolve.evaluator import Evaluator
 from openevolve.llm.ensemble import LLMEnsemble
-from openevolve.prompt.sampler import PromptSampler
 from openevolve.process_parallel import ProcessParallelController
+from openevolve.prompt.sampler import PromptSampler
 from openevolve.utils.code_utils import (
     extract_code_language,
-    extract_diffs,
-    format_diff_summary,
-    parse_full_rewrite,
 )
 from openevolve.utils.format_utils import (
     format_metrics_safe,
@@ -113,7 +108,7 @@ class OpenEvolve:
 
             # Create hash-based seeds for different components
             base_seed = str(self.config.random_seed).encode("utf-8")
-            llm_seed = int(hashlib.md5(base_seed + b"llm").hexdigest()[:8], 16) % (2**31)
+            llm_seed = int(hashlib.md5(base_seed + b"llm").hexdigest()[:8], 16) % (2 ** 31)
 
             # Propagate seed to LLM configurations
             self.config.llm.random_seed = llm_seed
@@ -160,12 +155,12 @@ class OpenEvolve:
 
         self.evaluator = Evaluator(
             self.config.evaluator,
-            self.initial_program_path,
             evaluation_file,
             self.llm_evaluator_ensemble,
             self.evaluator_prompt_sampler,
             database=self.database,
             suffix=Path(self.initial_program_path).suffix,
+            initial_program_path=self.initial_program_path,
         )
         self.evaluation_file = evaluation_file
 
@@ -211,10 +206,10 @@ class OpenEvolve:
             return f.read()
 
     async def run(
-        self,
-        iterations: Optional[int] = None,
-        target_score: Optional[float] = None,
-        checkpoint_path: Optional[str] = None,
+            self,
+            iterations: Optional[int] = None,
+            target_score: Optional[float] = None,
+            checkpoint_path: Optional[str] = None,
     ) -> Optional[Program]:
         """
         Run the evolution process with improved parallel processing
@@ -240,11 +235,11 @@ class OpenEvolve:
 
         # Only add initial program if starting fresh (not resuming from checkpoint)
         should_add_initial = (
-            start_iteration == 0
-            and len(self.database.programs) == 0
-            and not any(
-                p.code == self.initial_program_code for p in self.database.programs.values()
-            )
+                start_iteration == 0
+                and len(self.database.programs) == 0
+                and not any(
+            p.code == self.initial_program_code for p in self.database.programs.values()
+        )
         )
 
         if should_add_initial:
@@ -349,14 +344,14 @@ class OpenEvolve:
         if best_program and "combined_score" in best_program.metrics:
             best_by_combined = self.database.get_best_program(metric="combined_score")
             if (
-                best_by_combined
-                and best_by_combined.id != best_program.id
-                and "combined_score" in best_by_combined.metrics
+                    best_by_combined
+                    and best_by_combined.id != best_program.id
+                    and "combined_score" in best_by_combined.metrics
             ):
                 # If the combined_score of this program is significantly better, use it instead
                 if (
-                    best_by_combined.metrics["combined_score"]
-                    > best_program.metrics["combined_score"] + 0.02
+                        best_by_combined.metrics["combined_score"]
+                        > best_program.metrics["combined_score"] + 0.02
                 ):
                     logger.warning(
                         f"Found program with better combined_score: {best_by_combined.id}"
@@ -379,11 +374,11 @@ class OpenEvolve:
             return None
 
     def _log_iteration(
-        self,
-        iteration: int,
-        parent: Program,
-        child: Program,
-        elapsed_time: float,
+            self,
+            iteration: int,
+            parent: Program,
+            child: Program,
+            elapsed_time: float,
     ) -> None:
         """
         Log iteration progress
@@ -471,7 +466,7 @@ class OpenEvolve:
         logger.info(f"Checkpoint loaded successfully (iteration {self.database.last_iteration})")
 
     async def _run_evolution_with_checkpoints(
-        self, start_iteration: int, max_iterations: int, target_score: Optional[float]
+            self, start_iteration: int, max_iterations: int, target_score: Optional[float]
     ) -> None:
         """Run evolution with checkpoint saving support"""
         logger.info(f"Using island-based evolution with {self.config.database.num_islands} islands")

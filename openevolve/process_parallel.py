@@ -3,20 +3,17 @@ Process-based parallel controller for true parallelism
 """
 
 import asyncio
-import logging
 import multiprocessing as mp
-import pickle
-import signal
+import os
 import time
 from concurrent.futures import ProcessPoolExecutor, Future
 from dataclasses import dataclass, asdict
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
+
+from loguru import logger
 
 from openevolve.config import Config
 from openevolve.database import Program, ProgramDatabase
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -86,7 +83,7 @@ def _worker_init(config_dict: dict, evaluation_file: str) -> None:
     _worker_prompt_sampler = None
 
 
-def _lazy_init_worker_components():
+def _lazy_init_worker_components(system_prompt: str):
     """Lazily initialize expensive components on first use"""
     global _worker_evaluator
     global _worker_llm_ensemble
@@ -95,7 +92,7 @@ def _lazy_init_worker_components():
     if _worker_llm_ensemble is None:
         from openevolve.llm.ensemble import LLMEnsemble
 
-        _worker_llm_ensemble = LLMEnsemble(_worker_config.llm.models)
+        _worker_llm_ensemble = LLMEnsemble(_worker_config.llm.models, system_prompt)
 
     if _worker_prompt_sampler is None:
         from openevolve.prompt.sampler import PromptSampler
@@ -108,26 +105,28 @@ def _lazy_init_worker_components():
         from openevolve.prompt.sampler import PromptSampler
 
         # Create evaluator-specific components
-        evaluator_llm = LLMEnsemble(_worker_config.llm.evaluator_models)
+        evaluator_llm = LLMEnsemble(_worker_config.llm.evaluator_models, system_prompt)
         evaluator_prompt = PromptSampler(_worker_config.prompt)
         evaluator_prompt.set_templates("evaluator_system_message")
-
+        initial_program_path = os.environ.get("INITIAL_FILE_PATH", None)
         _worker_evaluator = Evaluator(
             _worker_config.evaluator,
             _worker_evaluation_file,
             evaluator_llm,
             evaluator_prompt,
             database=None,  # No shared database in worker
+            initial_program_path=initial_program_path,
         )
 
 
 def _run_iteration_worker(
-    iteration: int, db_snapshot: Dict[str, Any], parent_id: str, inspiration_ids: List[str]
+        iteration: int, db_snapshot: Dict[str, Any], parent_id: str, inspiration_ids: List[str],
+        system_prompt: str
 ) -> SerializableResult:
     """Run a single iteration in a worker process"""
     try:
         # Lazy initialization
-        _lazy_init_worker_components()
+        _lazy_init_worker_components(system_prompt)
 
         # Reconstruct programs from snapshot
         programs = {pid: Program(**prog_dict) for pid, prog_dict in db_snapshot["programs"].items()}
@@ -271,11 +270,11 @@ class ProcessParallelController:
 
         # Number of worker processes
         self.num_workers = config.evaluator.parallel_evaluations
-        
+
         # Worker-to-island pinning for true island isolation
         self.num_islands = config.database.num_islands
         self.worker_island_map = {}
-        
+
         # Distribute workers across islands using modulo
         for worker_id in range(self.num_workers):
             island_id = worker_id % self.num_islands
@@ -369,11 +368,11 @@ class ProcessParallelController:
         return snapshot
 
     async def run_evolution(
-        self,
-        start_iteration: int,
-        max_iterations: int,
-        target_score: Optional[float] = None,
-        checkpoint_callback=None,
+            self,
+            start_iteration: int,
+            max_iterations: int,
+            target_score: Optional[float] = None,
+            checkpoint_callback=None,
     ):
         """Run evolution with process-based parallelism"""
         if not self.executor:
@@ -394,7 +393,7 @@ class ProcessParallelController:
         # Submit initial batch - distribute across islands
         batch_per_island = max(1, batch_size // self.num_islands) if batch_size > 0 else 0
         current_iteration = start_iteration
-        
+
         # Round-robin distribution across islands
         for island_id in range(self.num_islands):
             for _ in range(batch_per_island):
@@ -414,9 +413,9 @@ class ProcessParallelController:
 
         # Process results as they complete
         while (
-            pending_futures
-            and completed_iterations < max_iterations
-            and not self.shutdown_event.is_set()
+                pending_futures
+                and completed_iterations < max_iterations
+                and not self.shutdown_event.is_set()
         ):
             # Find completed futures
             completed_iteration = None
@@ -463,8 +462,8 @@ class ProcessParallelController:
 
                     # Island management
                     if (
-                        completed_iteration > start_iteration
-                        and current_island_counter >= programs_per_island
+                            completed_iteration > start_iteration
+                            and current_island_counter >= programs_per_island
                     ):
                         self.database.next_island()
                         current_island_counter = 0
@@ -501,8 +500,8 @@ class ProcessParallelController:
                             self._warned_about_combined_score = False
 
                         if (
-                            "combined_score" not in child_program.metrics
-                            and not self._warned_about_combined_score
+                                "combined_score" not in child_program.metrics
+                                and not self._warned_about_combined_score
                         ):
                             from openevolve.utils.metrics_utils import safe_numeric_average
 
@@ -525,8 +524,8 @@ class ProcessParallelController:
                     # Checkpoint callback
                     # Don't checkpoint at iteration 0 (that's just the initial program)
                     if (
-                        completed_iteration > 0
-                        and completed_iteration % self.config.checkpoint_interval == 0
+                            completed_iteration > 0
+                            and completed_iteration % self.config.checkpoint_interval == 0
                     ):
                         logger.info(
                             f"Checkpoint interval reached at iteration {completed_iteration}"
@@ -552,7 +551,7 @@ class ProcessParallelController:
                 logger.error(f"Error processing result from iteration {completed_iteration}: {e}")
 
             completed_iterations += 1
-            
+
             # Remove completed iteration from island tracking
             for island_id, iteration_list in island_pending.items():
                 if completed_iteration in iteration_list:
@@ -561,9 +560,9 @@ class ProcessParallelController:
 
             # Submit next iterations maintaining island balance
             for island_id in range(self.num_islands):
-                if (len(island_pending[island_id]) < batch_per_island 
-                    and next_iteration < total_iterations 
-                    and not self.shutdown_event.is_set()):
+                if (len(island_pending[island_id]) < batch_per_island
+                        and next_iteration < total_iterations
+                        and not self.shutdown_event.is_set()):
                     future = self._submit_iteration(next_iteration, island_id)
                     if future:
                         pending_futures[next_iteration] = future
@@ -586,11 +585,11 @@ class ProcessParallelController:
         try:
             # Use specified island or current island
             target_island = island_id if island_id is not None else self.database.current_island
-            
+
             # Temporarily set database to target island for sampling
             original_island = self.database.current_island
             self.database.current_island = target_island
-            
+
             try:
                 # Sample parent and inspirations from the target island
                 parent, inspirations = self.database.sample(num_inspirations=self.config.prompt.num_top_programs)
@@ -609,6 +608,7 @@ class ProcessParallelController:
                 db_snapshot,
                 parent.id,
                 [insp.id for insp in inspirations],
+                self.config.prompt.system_message,
             )
 
             return future
