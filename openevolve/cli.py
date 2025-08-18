@@ -42,7 +42,7 @@ def parse_args() -> argparse.Namespace:
         "-l",
         help="Logging level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        default="INFO",
+        default=None,
     )
 
     parser.add_argument(
@@ -126,6 +126,7 @@ async def main_async() -> int:
         best_program = await openevolve.run(
             iterations=args.iterations,
             target_score=args.target_score,
+            checkpoint_path=args.checkpoint,
         )
 
         # Get the checkpoint path
