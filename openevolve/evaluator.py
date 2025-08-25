@@ -5,13 +5,14 @@ Evaluation system for OpenEvolve
 import asyncio
 import importlib.util
 import json
-import logging
 import os
 import sys
 import tempfile
 import time
 import traceback
 from typing import Any, Dict, List, Optional, Tuple, Union
+
+from loguru import logger
 
 from openevolve.config import EvaluatorConfig
 from openevolve.database import ProgramDatabase
@@ -20,8 +21,6 @@ from openevolve.llm.ensemble import LLMEnsemble
 from openevolve.prompt.sampler import PromptSampler
 from openevolve.utils.async_utils import TaskPool
 from openevolve.utils.format_utils import format_metrics_safe
-
-from loguru import logger
 
 
 class Evaluator:
@@ -33,14 +32,14 @@ class Evaluator:
     """
 
     def __init__(
-        self,
-        config: EvaluatorConfig,
-        initial_program_path: str,
-        evaluation_file: str,
-        llm_ensemble: Optional[LLMEnsemble] = None,
-        prompt_sampler: Optional[PromptSampler] = None,
-        database: Optional[ProgramDatabase] = None,
-        suffix: Optional[str] = ".py",
+            self,
+            config: EvaluatorConfig,
+            evaluation_file: str,
+            llm_ensemble: Optional[LLMEnsemble] = None,
+            prompt_sampler: Optional[PromptSampler] = None,
+            database: Optional[ProgramDatabase] = None,
+            suffix: Optional[str] = ".py",
+            initial_program_path=None
     ):
         self.config = config
         self.initial_program_path = initial_program_path
@@ -127,9 +126,9 @@ class Evaluator:
                 )
 
     async def evaluate_program(
-        self,
-        program_code: str,
-        program_id: str = "",
+            self,
+            program_code: str,
+            program_id: str = "",
     ) -> Dict[str, float]:
         """
         Evaluate a program and return scores
@@ -198,7 +197,7 @@ class Evaluator:
                     if llm_scores:
                         llm_average = sum(llm_scores) / len(llm_scores)
                         eval_result.metrics["llm_average"] = (
-                            llm_average * self.config.llm_feedback_weight
+                                llm_average * self.config.llm_feedback_weight
                         )
 
                         # Recalculate combined_score if it exists
@@ -207,7 +206,7 @@ class Evaluator:
                             accuracy = eval_result.metrics["combined_score"]
                             # Combine with LLM average (70% accuracy, 30% LLM quality)
                             eval_result.metrics["combined_score"] = (
-                                accuracy * 0.7 + llm_average * 0.3
+                                    accuracy * 0.7 + llm_average * 0.3
                             )
 
                 # Store artifacts if enabled and present
@@ -326,7 +325,7 @@ class Evaluator:
         return self._pending_artifacts.pop(program_id, None)
 
     async def _direct_evaluate(
-        self, program_path: str
+            self, program_path: str
     ) -> Union[Dict[str, float], EvaluationResult]:
         """
         Directly evaluate a program using the evaluation function with timeout
@@ -704,8 +703,8 @@ class Evaluator:
         return avg_score >= threshold
 
     async def evaluate_multiple(
-        self,
-        programs: List[Tuple[str, str]],
+            self,
+            programs: List[Tuple[str, str]],
     ) -> List[Dict[str, float]]:
         """
         Evaluate multiple programs in parallel
