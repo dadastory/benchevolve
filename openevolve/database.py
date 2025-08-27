@@ -231,7 +231,7 @@ class ProgramDatabase:
 
             if feature_key not in self.feature_map:
                 # New cell occupation
-                logger.info("New MAP-Elites cell occupied: %s", coords_dict)
+                logger.info(f"New MAP-Elites cell occupied: {coords_dict}")
                 # Check coverage milestone
                 total_possible_cells = self.feature_bins ** len(self.config.feature_dimensions)
                 coverage = (len(self.feature_map) + 1) / total_possible_cells
