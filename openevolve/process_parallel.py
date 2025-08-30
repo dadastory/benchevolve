@@ -3,7 +3,6 @@ Process-based parallel controller for true parallelism
 """
 
 import asyncio
-import logging
 import multiprocessing as mp
 import os
 import time
@@ -11,11 +10,11 @@ from concurrent.futures import ProcessPoolExecutor, Future
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional
 
+from loguru import logger
+
 from openevolve.config import Config
 from openevolve.database import Program, ProgramDatabase
 from openevolve.utils.metrics_utils import safe_numeric_average
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass

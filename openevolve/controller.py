@@ -187,7 +187,8 @@ class OpenEvolve:
             compression="zip",  # 压缩旧日志
             encoding="utf-8",
             level=self.config.log_level,  # 直接用你的 config.log_level
-            format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}"
+            format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}",
+            enqueue=True
         )
 
         # 添加控制台输出（带颜色）

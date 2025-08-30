@@ -4,25 +4,21 @@ Program database for OpenEvolve
 
 import base64
 import json
-import logging
 import os
 import random
 import shutil
 import time
 import uuid
 from dataclasses import asdict, dataclass, field, fields
-
 # FileLock removed - no longer needed with threaded parallel processing
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-import numpy as np
-
-from openevolve.config import DatabaseConfig
-from openevolve.utils.code_utils import calculate_edit_distance
-from openevolve.utils.metrics_utils import safe_numeric_average, get_fitness_score
-
 # logger = logging.getLogger(__name__)
 from loguru import logger
+
+from openevolve.config import DatabaseConfig
+from openevolve.utils.metrics_utils import safe_numeric_average, get_fitness_score
+
 
 def _safe_sum_metrics(metrics: Dict[str, Any]) -> float:
     """Safely sum only numeric metric values, ignoring strings and other types"""
@@ -180,7 +176,7 @@ class ProgramDatabase:
         logger.info(f"Initialized program database with {len(self.programs)} programs")
 
     def add(
-        self, program: Program, iteration: int = None, target_island: Optional[int] = None
+            self, program: Program, iteration: int = None, target_island: Optional[int] = None
     ) -> str:
         """
         Add a program to the database
@@ -250,10 +246,7 @@ class ProgramDatabase:
                     new_fitness = get_fitness_score(program.metrics, self.config.feature_dimensions)
                     existing_fitness = get_fitness_score(existing_program.metrics, self.config.feature_dimensions)
                     logger.info(
-                        "MAP-Elites cell improved: %s (fitness: %.3f -> %.3f)",
-                        coords_dict,
-                        existing_fitness,
-                        new_fitness,
+                        f"MAP-Elites cell improved: {coords_dict} (fitness: {existing_fitness} -> {new_fitness})",
                     )
 
                     # use MAP-Elites to manage archive
@@ -396,7 +389,7 @@ class ProgramDatabase:
 
         # Update the best program tracking if we found a better program
         if sorted_programs and (
-            self.best_program_id is None or sorted_programs[0].id != self.best_program_id
+                self.best_program_id is None or sorted_programs[0].id != self.best_program_id
         ):
             old_id = self.best_program_id
             self.best_program_id = sorted_programs[0].id
@@ -404,21 +397,21 @@ class ProgramDatabase:
 
             # Also log the scores to help understand the update
             if (
-                old_id
-                and old_id in self.programs
-                and "combined_score" in self.programs[old_id].metrics
-                and "combined_score" in self.programs[self.best_program_id].metrics
+                    old_id
+                    and old_id in self.programs
+                    and "combined_score" in self.programs[old_id].metrics
+                    and "combined_score" in self.programs[self.best_program_id].metrics
             ):
                 old_score = self.programs[old_id].metrics["combined_score"]
                 new_score = self.programs[self.best_program_id].metrics["combined_score"]
                 logger.info(
-                    f"Score change: {old_score:.4f} → {new_score:.4f} ({new_score-old_score:+.4f})"
+                    f"Score change: {old_score:.4f} → {new_score:.4f} ({new_score - old_score:+.4f})"
                 )
 
         return sorted_programs[0] if sorted_programs else None
 
     def get_top_programs(
-        self, n: int = 10, metric: Optional[str] = None, island_idx: Optional[int] = None
+            self, n: int = 10, metric: Optional[str] = None, island_idx: Optional[int] = None
     ) -> List[Program]:
         """
         Get the top N programs based on a metric
@@ -433,7 +426,7 @@ class ProgramDatabase:
         """
         # Validate island_idx parameter
         if island_idx is not None and (island_idx < 0 or island_idx >= len(self.islands)):
-            raise IndexError(f"Island index {island_idx} is out of range (0-{len(self.islands)-1})")
+            raise IndexError(f"Island index {island_idx} is out of range (0-{len(self.islands) - 1})")
 
         if not self.programs:
             return []
@@ -492,9 +485,9 @@ class ProgramDatabase:
         for program in self.programs.values():
             prompts = None
             if (
-                self.config.log_prompts
-                and self.prompts_by_program
-                and program.id in self.prompts_by_program
+                    self.config.log_prompts
+                    and self.prompts_by_program
+                    and program.id in self.prompts_by_program
             ):
                 prompts = self.prompts_by_program[program.id]
             self._save_program(program, save_path, prompts=prompts)
@@ -547,7 +540,7 @@ class ProgramDatabase:
             self.current_island = metadata.get("current_island", 0)
             self.island_generations = metadata.get("island_generations", [0] * len(saved_islands))
             self.last_migration_generation = metadata.get("last_migration_generation", 0)
-            
+
             # Load feature_stats for MAP-Elites grid stability
             self.feature_stats = self._deserialize_feature_stats(metadata.get("feature_stats", {}))
 
@@ -676,10 +669,10 @@ class ProgramDatabase:
         logger.info(f"Distributed {len(program_ids)} programs across {len(self.islands)} islands")
 
     def _save_program(
-        self,
-        program: Program,
-        base_path: Optional[str] = None,
-        prompts: Optional[Dict[str, Dict[str, str]]] = None,
+            self,
+            program: Program,
+            base_path: Optional[str] = None,
+            prompts: Optional[Dict[str, Dict[str, str]]] = None,
     ) -> None:
         """
         Save a program to disk
@@ -989,8 +982,8 @@ class ProgramDatabase:
 
             # Log the change
             if (
-                "combined_score" in program.metrics
-                and "combined_score" in current_island_best.metrics
+                    "combined_score" in program.metrics
+                    and "combined_score" in current_island_best.metrics
             ):
                 old_score = current_island_best.metrics["combined_score"]
                 new_score = program.metrics["combined_score"]
@@ -1189,9 +1182,9 @@ class ProgramDatabase:
         # Include the island's best program if available and different from parent
         island_best_id = self.island_best_programs[parent_island]
         if (
-            island_best_id is not None
-            and island_best_id != parent.id
-            and island_best_id in self.programs
+                island_best_id is not None
+                and island_best_id != parent.id
+                and island_best_id in self.programs
         ):
             island_best = self.programs[island_best_id]
             inspirations.append(island_best)
@@ -1241,10 +1234,10 @@ class ProgramDatabase:
                 if cell_key in island_feature_map:
                     program_id = island_feature_map[cell_key]
                     if (
-                        program_id != parent.id
-                        and program_id not in [p.id for p in inspirations]
-                        and program_id not in [p.id for p in nearby_programs]
-                        and program_id in self.programs
+                            program_id != parent.id
+                            and program_id not in [p.id for p in inspirations]
+                            and program_id not in [p.id for p in nearby_programs]
+                            and program_id in self.programs
                     ):
                         nearby_programs.append(self.programs[program_id])
                         if len(nearby_programs) >= remaining_slots:
@@ -1622,7 +1615,7 @@ class ProgramDatabase:
         max_comparisons = 6  # Maximum comparisons to prevent long delays
 
         for i, prog1 in enumerate(sample_programs):
-            for prog2 in sample_programs[i + 1 :]:
+            for prog2 in sample_programs[i + 1:]:
                 if comparisons >= max_comparisons:
                     break
 
@@ -1682,8 +1675,8 @@ class ProgramDatabase:
 
         # Update reference set if needed
         if (
-            not self.diversity_reference_set
-            or len(self.diversity_reference_set) < self.diversity_reference_size
+                not self.diversity_reference_set
+                or len(self.diversity_reference_set) < self.diversity_reference_size
         ):
             self._update_diversity_reference_set()
 
@@ -1872,7 +1865,7 @@ class ProgramDatabase:
                         serialized_stats[key] = value
             serialized[feature_name] = serialized_stats
         return serialized
-    
+
     def _deserialize_feature_stats(self, stats_dict: Dict[str, Any]) -> Dict[str, Dict[str, Union[float, List[float]]]]:
         """
         Deserialize feature_stats from loaded JSON
@@ -1885,7 +1878,7 @@ class ProgramDatabase:
         """
         if not stats_dict:
             return {}
-            
+
         deserialized = {}
         for feature_name, stats in stats_dict.items():
             if isinstance(stats, dict):
@@ -1898,7 +1891,7 @@ class ProgramDatabase:
                 deserialized[feature_name] = deserialized_stats
             else:
                 logger.warning(f"Skipping malformed feature_stats entry for '{feature_name}': {stats}")
-        
+
         return deserialized
 
     def log_island_status(self) -> None:
@@ -2124,11 +2117,11 @@ class ProgramDatabase:
         return artifacts
 
     def log_prompt(
-        self,
-        program_id: str,
-        template_key: str,
-        prompt: Dict[str, str],
-        responses: Optional[List[str]] = None,
+            self,
+            program_id: str,
+            template_key: str,
+            prompt: Dict[str, str],
+            responses: Optional[List[str]] = None,
     ) -> None:
         """
         Log a prompt for a program.
